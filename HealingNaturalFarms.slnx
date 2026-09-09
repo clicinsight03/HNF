@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HealingNaturalFarms.Api/HealingNaturalFarms.Api.csproj" />
+    <Project Path="src/HealingNaturalFarms.Domain/HealingNaturalFarms.Domain.csproj" />
+    <Project Path="src/HealingNaturalFarms.Infrastructure/HealingNaturalFarms.Infrastructure.csproj" />
+    <Project Path="src/HealingNaturalFarms.Payments/HealingNaturalFarms.Payments.csproj" />
+  </Folder>
+  <Folder Name="/src/HealingNaturalFarms.Web/">
+    <Project Path="src/HealingNaturalFarms.Web/HealingNaturalFarms.Web.Client/HealingNaturalFarms.Web.Client.csproj" />
+    <Project Path="src/HealingNaturalFarms.Web/HealingNaturalFarms.Web/HealingNaturalFarms.Web.csproj" />
+  </Folder>
+</Solution>

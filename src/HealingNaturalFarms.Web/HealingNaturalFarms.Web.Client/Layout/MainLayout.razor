@@ -1,0 +1,58 @@
+@inherits LayoutComponentBase
+@inject RegionState Region
+@inject AuthState Auth
+@inject GuestIdProvider GuestId
+@inject CartState Cart
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="hnf-app">
+    <SiteHeader />
+
+    <main class="hnf-content">
+        @Body
+    </main>
+
+    <footer class="hnf-footer">
+        <div class="hnf-container">
+            <p>&copy; @DateTime.UtcNow.Year Healing Natural Farms. Plants and produce, grown with care.</p>
+        </div>
+    </footer>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // JS interop is only available once the component is running
+        // interactively (not during static prerendering), which is why
+        // this initialization happens here rather than in OnInitializedAsync.
+        await GuestId.InitializeAsync(JS);
+        await Region.InitializeAsync(JS);
+        await Auth.InitializeAsync(JS);
+
+        Region.Changed += OnRegionChanged;
+        await Cart.RefreshAsync();
+        StateHasChanged();
+    }
+
+    private async void OnRegionChanged()
+    {
+        // Switching storefronts starts a fresh cart (see Cart entity notes) -
+        // refresh so the header badge reflects the new region's cart.
+        await Cart.RefreshAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Region.Changed -= OnRegionChanged;
+    }
+}

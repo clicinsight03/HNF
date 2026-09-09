@@ -1,0 +1,72 @@
+@inject RegionState Region
+@inject AuthState Auth
+@inject CartState Cart
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@implements IDisposable
+
+<header class="hnf-header">
+    <div class="hnf-container hnf-header-row">
+        <a class="hnf-brand" href="/">
+            <span class="hnf-brand-mark">🌿</span> Healing Natural Farms
+        </a>
+
+        <nav class="hnf-nav">
+            <NavLink href="/shop/plant" class="hnf-nav-link">Plants</NavLink>
+            <NavLink href="/shop/produce" class="hnf-nav-link">Produce</NavLink>
+        </nav>
+
+        <div class="hnf-header-actions">
+            <select class="hnf-region-select" value="@Region.Current" @onchange="OnRegionChanged" title="Storefront region">
+                <option value="US">🇺🇸 United States (USD)</option>
+                <option value="IN">🇮🇳 India (INR)</option>
+            </select>
+
+            @if (Auth.IsAuthenticated)
+            {
+                <span class="hnf-account">Hi, @Auth.FirstName</span>
+                <button class="hnf-link-btn" @onclick="SignOut">Sign out</button>
+            }
+            else
+            {
+                <a class="hnf-link-btn" href="/login">Sign in</a>
+            }
+
+            <a class="hnf-cart-link" href="/cart">
+                🛒 Cart
+                @if (Cart.ItemCount > 0)
+                {
+                    <span class="hnf-cart-badge">@Cart.ItemCount</span>
+                }
+            </a>
+        </div>
+    </div>
+</header>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Cart.Changed += OnCartChanged;
+    }
+
+    private void OnCartChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task OnRegionChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<RegionCode>(e.Value?.ToString(), out var region))
+        {
+            await Region.SetRegionAsync(JS, region);
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await Auth.SignOutAsync(JS);
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+
+    public void Dispose()
+    {
+        Cart.Changed -= OnCartChanged;
+    }
+}

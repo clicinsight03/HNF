@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Pinned to EF Core 9.0.x rather than 10.0.x: Pomelo's MySQL provider
+    (the de facto standard EF Core MySQL provider) targets ".NET 8.0+,
+    EF Core 9.0.x" as of this writing and does not yet have an EF Core 10
+    build. EF Core 9 packages run fine on the net10.0 TFM used elsewhere
+    in this solution - only this project and the Api project's EF-related
+    references need to stay on the 9.0.x line. Revisit once Pomelo ships
+    an EF Core 10-targeted release.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../HealingNaturalFarms.Domain/HealingNaturalFarms.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

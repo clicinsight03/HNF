@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <title>Healing Natural Farms</title>
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["HealingNaturalFarms.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveAuto" />
+
+    <!--
+      Stripe.js and Razorpay's checkout.js are safe to load unconditionally -
+      neither does anything until Checkout.razor explicitly invokes it, and
+      neither needs a region/currency at load time (unlike PayPal's SDK,
+      which is loaded dynamically per-region from payments.js instead - see
+      hnfPayments.loadAndRenderPayPalButtons).
+    -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveAuto" />
+    <ReconnectModal />
+    <script src="js/site.js"></script>
+    <script src="js/payments.js"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
