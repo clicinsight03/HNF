@@ -42,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<CartState>();
         builder.Services.AddSingleton<OrderState>();
         builder.Services.AddSingleton<IPushTokenService, PushTokenService>();
+        builder.Services.AddSingleton<PushRegistrationService>();
 
         // ---- Pages (transient - Shell creates a new instance per navigation) --
         builder.Services.AddTransient<LoginPage>();

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HealingNaturalFarms.Maui.Pages.CheckoutPage"
+             Title="Checkout">
+
+    <Grid>
+        <ScrollView x:Name="AddressSection">
+            <VerticalStackLayout Padding="16" Spacing="10">
+                <Label Text="Shipping details" Style="{StaticResource H1}" />
+
+                <Label Text="Full name" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="FullNameEntry" />
+
+                <Label Text="Email" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="EmailEntry" Keyboard="Email" />
+
+                <Label Text="Phone" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="PhoneEntry" Keyboard="Telephone" />
+
+                <Label Text="Address line 1" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="Line1Entry" />
+
+                <Label Text="Address line 2 (optional)" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="Line2Entry" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label Text="City" Style="{StaticResource FieldLabel}" />
+                        <Entry x:Name="CityEntry" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1">
+                        <Label Text="State/Province" Style="{StaticResource FieldLabel}" />
+                        <Entry x:Name="StateEntry" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label Text="Postal code" Style="{StaticResource FieldLabel}" />
+                        <Entry x:Name="PostalCodeEntry" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1">
+                        <Label Text="Country" Style="{StaticResource FieldLabel}" />
+                        <Entry x:Name="CountryEntry" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Label Text="Payment method" Style="{StaticResource H2}" Margin="0,10,0,0" />
+                <Picker x:Name="ProviderPicker" />
+
+                <Label x:Name="AddressErrorLabel" Style="{StaticResource DangerBanner}" IsVisible="False" />
+
+                <Button x:Name="ContinueButton" Text="Continue to payment" Style="{StaticResource PrimaryButton}" Clicked="OnContinueClicked" Margin="0,10,0,0" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="PaymentSection" IsVisible="False" RowDefinitions="Auto,*">
+            <Label Grid.Row="0" x:Name="PaymentErrorLabel" Style="{StaticResource DangerBanner}" IsVisible="False" />
+            <WebView x:Name="PaymentWebView" Grid.Row="1" Navigating="OnWebViewNavigating" />
+        </Grid>
+
+        <ActivityIndicator x:Name="BusyIndicator" IsRunning="False" IsVisible="False" HorizontalOptions="Center" VerticalOptions="Center" Color="{StaticResource BrandGreen600}" />
+    </Grid>
+</ContentPage>

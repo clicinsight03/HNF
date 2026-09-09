@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HealingNaturalFarms.Maui.Pages.LoginPage"
+             Title="Account"
+             BackgroundColor="{StaticResource CreamBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16" MaximumWidthRequest="480" HorizontalOptions="Center">
+
+            <!-- Shown when signed in -->
+            <VerticalStackLayout x:Name="AccountSection" IsVisible="false" Spacing="12">
+                <Label Text="Your account" Style="{StaticResource H1}" />
+                <Frame Style="{StaticResource CardFrame}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label x:Name="AccountNameLabel" FontAttributes="Bold" FontSize="18" />
+                        <Label x:Name="AccountEmailLabel" TextColor="{StaticResource MutedText}" />
+                        <Label x:Name="AccountRegionLabel" TextColor="{StaticResource MutedText}" />
+                    </VerticalStackLayout>
+                </Frame>
+                <Button Text="Sign out" Style="{StaticResource SecondaryButton}" Clicked="OnSignOutClicked" />
+            </VerticalStackLayout>
+
+            <!-- Shown when signed out -->
+            <VerticalStackLayout x:Name="LoginSection" Spacing="14">
+                <Label Text="Sign in" Style="{StaticResource H1}" />
+
+                <Label Text="Email" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="EmailEntry" Keyboard="Email" />
+
+                <Label Text="Password" Style="{StaticResource FieldLabel}" />
+                <Entry x:Name="PasswordEntry" IsPassword="True" />
+
+                <Label x:Name="ErrorLabel" TextColor="{StaticResource DangerText}" IsVisible="False" />
+
+                <Button x:Name="SignInButton" Text="Sign in" Style="{StaticResource PrimaryButton}" Clicked="OnSignInClicked" />
+
+                <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Label Text="New here?" TextColor="{StaticResource MutedText}" />
+                    <Label Text="Create an account" TextColor="{StaticResource BrandGreen600}" FontAttributes="Bold">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCreateAccountTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

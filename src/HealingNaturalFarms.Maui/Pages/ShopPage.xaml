@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:dtos="clr-namespace:HealingNaturalFarms.Domain.Dtos;assembly=HealingNaturalFarms.Domain"
+             x:Class="HealingNaturalFarms.Maui.Pages.ShopPage"
+             Title="Shop">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Padding="16" RowSpacing="10">
+
+        <!-- Region + cart summary -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <Picker x:Name="RegionPicker" Grid.Column="0" HorizontalOptions="Start" WidthRequest="180" SelectedIndexChanged="OnRegionChanged">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>United States (USD)</x:String>
+                        <x:String>India (INR)</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+            <Label x:Name="CartSummaryLabel" Grid.Column="1" VerticalOptions="Center" TextColor="{StaticResource BrandGreen700}" FontAttributes="Bold" Text="Cart (0)">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCartTapped" />
+                </Label.GestureRecognizers>
+            </Label>
+        </Grid>
+
+        <!-- Plant / Produce switch -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button x:Name="PlantButton" Grid.Column="0" Text="🪴 Plants" Style="{StaticResource PrimaryButton}" Clicked="OnPlantTabClicked" />
+            <Button x:Name="ProduceButton" Grid.Column="1" Text="🥬 Produce" Style="{StaticResource SecondaryButton}" Clicked="OnProduceTabClicked" />
+        </Grid>
+
+        <!-- Category filter -->
+        <Picker x:Name="CategoryPicker" Grid.Row="2" Title="All categories" SelectedIndexChanged="OnCategoryChanged" />
+
+        <!-- Search -->
+        <SearchBar x:Name="SearchBox" Grid.Row="3" Placeholder="Search..." TextChanged="OnSearchTextChanged" />
+
+        <!-- Product grid -->
+        <RefreshView x:Name="ProductsRefreshView" Grid.Row="4" Refreshing="OnRefreshing">
+            <CollectionView x:Name="ProductsView" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2" VerticalItemSpacing="12" HorizontalItemSpacing="12" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="No products found." Style="{StaticResource MutedLabel}" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dtos:ProductListItemDto">
+                        <Frame Style="{StaticResource CardFrame}" Padding="10">
+                            <VerticalStackLayout Spacing="6">
+                                <Grid HeightRequest="110" BackgroundColor="{StaticResource CreamCard}">
+                                    <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
+                                </Grid>
+                                <Label Text="{Binding Name}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding ., Converter={StaticResource MoneyConverter}}" Style="{StaticResource PriceLabel}" />
+                                <Button Text="View" Style="{StaticResource SecondaryButton}" Padding="8,6"
+                                        Clicked="OnProductTapped" CommandParameter="{Binding Slug}" />
+                            </VerticalStackLayout>
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnProductFrameTapped" CommandParameter="{Binding Slug}" />
+                            </Frame.GestureRecognizers>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Load more / status -->
+        <VerticalStackLayout Grid.Row="5" Spacing="6">
+            <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" IsVisible="False" Color="{StaticResource BrandGreen600}" />
+            <Button x:Name="LoadMoreButton" Text="Load more" Style="{StaticResource SecondaryButton}" IsVisible="False" Clicked="OnLoadMoreClicked" />
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>

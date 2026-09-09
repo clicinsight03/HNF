@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HealingNaturalFarms.Maui.Pages.RegisterPage"
+             Title="Create account">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="14" MaximumWidthRequest="480" HorizontalOptions="Center">
+            <Label Text="Create your account" Style="{StaticResource H1}" />
+
+            <Label Text="First name" Style="{StaticResource FieldLabel}" />
+            <Entry x:Name="FirstNameEntry" />
+
+            <Label Text="Last name" Style="{StaticResource FieldLabel}" />
+            <Entry x:Name="LastNameEntry" />
+
+            <Label Text="Email" Style="{StaticResource FieldLabel}" />
+            <Entry x:Name="EmailEntry" Keyboard="Email" />
+
+            <Label Text="Password" Style="{StaticResource FieldLabel}" />
+            <Entry x:Name="PasswordEntry" IsPassword="True" />
+
+            <Label Text="Preferred storefront" Style="{StaticResource FieldLabel}" />
+            <Picker x:Name="RegionPicker">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>United States (USD)</x:String>
+                        <x:String>India (INR)</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+
+            <Label x:Name="ErrorLabel" TextColor="{StaticResource DangerText}" IsVisible="False" />
+
+            <Button x:Name="CreateAccountButton" Text="Create account" Style="{StaticResource PrimaryButton}" Clicked="OnCreateAccountClicked" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

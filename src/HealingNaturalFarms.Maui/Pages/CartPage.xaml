@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pages="clr-namespace:HealingNaturalFarms.Maui.Pages"
+             x:Class="HealingNaturalFarms.Maui.Pages.CartPage"
+             Title="Your Cart">
+
+    <Grid RowDefinitions="*,Auto" Padding="16" RowSpacing="12">
+
+        <RefreshView x:Name="CartRefreshView" Grid.Row="0" Refreshing="OnRefreshing">
+            <CollectionView x:Name="ItemsView" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                        <Label Text="Your cart is empty." Style="{StaticResource MutedLabel}" HorizontalOptions="Center" />
+                        <Button Text="Continue shopping" Style="{StaticResource PrimaryButton}" Clicked="OnContinueShoppingClicked" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="pages:CartLineDisplay">
+                        <Frame Style="{StaticResource CardFrame}" Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="60,*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="6">
+                                <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" HeightRequest="56" WidthRequest="56" BackgroundColor="{StaticResource CreamCard}">
+                                    <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
+                                </Grid>
+
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Name}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                                <Label Grid.Row="0" Grid.Column="2" Text="{Binding LineTotalDisplay}" Style="{StaticResource PriceLabel}" />
+
+                                <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="10">
+                                    <Button Text="-" WidthRequest="32" HeightRequest="32" Padding="0" Style="{StaticResource SecondaryButton}"
+                                            Clicked="OnDecrementClicked" CommandParameter="{Binding ProductId}" />
+                                    <Label Text="{Binding Quantity}" VerticalOptions="Center" />
+                                    <Button Text="+" WidthRequest="32" HeightRequest="32" Padding="0" Style="{StaticResource SecondaryButton}"
+                                            Clicked="OnIncrementClicked" CommandParameter="{Binding ProductId}" />
+                                </HorizontalStackLayout>
+
+                                <Label Grid.Row="1" Grid.Column="2" Text="Remove" TextColor="{StaticResource DangerText}" FontSize="13">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnRemoveTapped" CommandParameter="{Binding ProductId}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Frame Grid.Row="1" Style="{StaticResource CardFrame}" x:Name="SummaryFrame" IsVisible="False">
+            <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Text="Subtotal" FontAttributes="Bold" />
+                    <Label Grid.Column="1" x:Name="SubtotalLabel" Style="{StaticResource PriceLabel}" />
+                </Grid>
+                <Button Text="Proceed to Checkout" Style="{StaticResource PrimaryButton}" Clicked="OnCheckoutClicked" />
+            </VerticalStackLayout>
+        </Frame>
+
+    </Grid>
+</ContentPage>

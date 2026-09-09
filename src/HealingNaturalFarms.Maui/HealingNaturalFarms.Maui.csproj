@@ -50,19 +50,21 @@
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!--
-      No Firebase/APNs NuGet packages are referenced here - this sandbox
-      has no NuGet access to verify them against, and pinning a push
-      library sight-unseen would be worse than leaving a documented gap.
-      Services/PushTokenService.*.cs below has the exact package + native
-      config steps to add on your own machine. Everything else needed to
-      register whatever token that library hands you (POST
-      api/notifications/devices) is already wired up.
-    -->
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
-  </ItemGroup>
+  <!--
+    No PackageReference entries at all: <UseMaui>true</UseMaui> above
+    already brings in Microsoft.Maui.Controls/Essentials as implicit
+    framework references (the same way Microsoft.NET.Sdk.Web implicitly
+    references the ASP.NET Core shared framework) - an explicit
+    PackageReference for it would be redundant at best. This project
+    calls HttpClient directly rather than through IHttpClientFactory, so
+    it doesn't need Microsoft.Extensions.Http either. That leaves this
+    project dependency-free apart from Domain, same as Payments and
+    Web.Client - deliberate, since this sandbox has no NuGet access to
+    verify a package against. The one deferred integration
+    (Firebase/APNs push - see Services/PushTokenService.cs) is
+    documented there with the exact package and native setup steps to
+    add on your own machine.
+  -->
 
   <ItemGroup>
     <ProjectReference Include="..\HealingNaturalFarms.Domain\HealingNaturalFarms.Domain.csproj" />

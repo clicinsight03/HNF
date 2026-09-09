@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout</title>
+    <style>
+        body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #faf7f0; color: #22281f; margin: 0; padding: 16px; }
+        h2 { color: #2f5d3a; font-size: 18px; }
+        #pay-button { background: #3c7a4a; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 16px; }
+        #pay-button:disabled { opacity: .6; }
+        #status { color: #b3261e; margin-top: 12px; }
+        #payment-element, #paypal-button-container { margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <h2>Pay __AMOUNT_DISPLAY__</h2>
+    <p>Order __ORDER_NUMBER__</p>
+
+    <div id="payment-element" style="display:none;"></div>
+    <div id="paypal-button-container" style="display:none;"></div>
+    <button id="pay-button" style="display:none;">Pay __AMOUNT_DISPLAY__</button>
+
+    <div id="status"></div>
+
+    <script>
+        // ---------------------------------------------------------------
+        // Bridge back to the .NET MAUI host: MAUI's WebView doesn't have a
+        // JS<->C# bridge for a plain HtmlWebViewSource (that needs
+        // HybridWebView, a different control), so this page reports
+        // results by navigating to a custom "app://payment-result" URL.
+        // CheckoutPage.xaml.cs intercepts that navigation in the WebView's
+        // Navigating event, cancels it (so the WebView never actually
+        // tries to load it), and parses the query string itself. This is
+        // a standard, dependency-free pattern for a one-shot result
+        // hand-off out of a WebView.
+        // ---------------------------------------------------------------
+        function reportResult(success, fields) {
+            var qs = 'success=' + encodeURIComponent(success);
+            for (var key in fields) {
+                qs += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(fields[key] ?? '');
+            }
+            window.location.href = 'app://payment-result?' + qs;
+        }
+
+        var provider = '__PROVIDER__';
+        var publicKey = '__PUBLIC_KEY__';
+        var clientSecret = '__CLIENT_SECRET__';
+        var providerOrderId = '__PROVIDER_ORDER_ID__';
+        var currency = '__CURRENCY__';
+        var amountSmallestUnit = __AMOUNT_SMALLEST_UNIT__;
+        var orderNumber = '__ORDER_NUMBER__';
+
+        function loadScript(src, onload, onerror) {
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = onload;
+            s.onerror = onerror || function () { reportResult(false, { message: 'Failed to load ' + src }); };
+            document.body.appendChild(s);
+        }
+
+        if (provider === 'Stripe') {
+            loadScript('https://js.stripe.com/v3/', function () {
+                var stripe = Stripe(publicKey);
+                var elements = stripe.elements({ clientSecret: clientSecret });
+                var paymentElement = elements.create('payment');
+                document.getElementById('payment-element').style.display = 'block';
+                paymentElement.mount('#payment-element');
+
+                var btn = document.getElementById('pay-button');
+                btn.style.display = 'block';
+                btn.onclick = async function () {
+                    btn.disabled = true;
+                    document.getElementById('status').textContent = '';
+                    var result = await stripe.confirmPayment({ elements: elements, redirect: 'if_required' });
+                    if (result.error) {
+                        document.getElementById('status').textContent = result.error.message;
+                        btn.disabled = false;
+                        return;
+                    }
+                    reportResult(true, { provider: 'Stripe', paymentReference: result.paymentIntent.id });
+                };
+            });
+        } else if (provider === 'PayPal') {
+            loadScript('https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(publicKey) + '&currency=' + encodeURIComponent(currency), function () {
+                document.getElementById('paypal-button-container').style.display = 'block';
+                paypal.Buttons({
+                    createOrder: function () { return providerOrderId; },
+                    onApprove: function (data) {
+                        reportResult(true, { provider: 'PayPal', paymentReference: data.orderID });
+                    },
+                    onCancel: function () {
+                        reportResult(false, { message: 'Payment was cancelled.' });
+                    },
+                    onError: function (err) {
+                        reportResult(false, { message: err ? err.toString() : 'PayPal error' });
+                    }
+                }).render('#paypal-button-container');
+            });
+        } else if (provider === 'Razorpay') {
+            loadScript('https://checkout.razorpay.com/v1/checkout.js', function () {
+                var btn = document.getElementById('pay-button');
+                btn.style.display = 'block';
+                btn.onclick = function () {
+                    var rzp = new window.Razorpay({
+                        key: publicKey,
+                        amount: amountSmallestUnit,
+                        currency: currency,
+                        order_id: providerOrderId,
+                        name: 'Healing Natural Farms',
+                        description: 'Order ' + orderNumber,
+                        handler: function (response) {
+                            reportResult(true, {
+                                provider: 'Razorpay',
+                                paymentReference: response.razorpay_payment_id,
+                                signature: response.razorpay_signature
+                            });
+                        },
+                        modal: {
+                            ondismiss: function () { reportResult(false, { message: 'Payment was cancelled.' }); }
+                        }
+                    });
+                    rzp.on('payment.failed', function (response) {
+                        reportResult(false, { message: response.error ? response.error.description : 'Payment failed.' });
+                    });
+                    rzp.open();
+                };
+            });
+        } else {
+            document.getElementById('status').textContent = 'Unknown payment provider.';
+        }
+    </script>
+</body>
+</html>

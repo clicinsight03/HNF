@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HealingNaturalFarms.Maui.Pages.OrderConfirmationPage"
+             Title="Order Confirmed">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="14" MaximumWidthRequest="480" HorizontalOptions="Center">
+
+            <VerticalStackLayout x:Name="EmptyState" Spacing="10" IsVisible="False" HorizontalOptions="Center">
+                <Label Text="🌿" FontSize="40" HorizontalOptions="Center" />
+                <Label Text="Thanks for your order!" Style="{StaticResource H1}" HorizontalOptions="Center" />
+                <Label Text="We couldn't find the order details for this page - check your email for your confirmation." Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+                <Button Text="Continue shopping" Style="{StaticResource PrimaryButton}" Clicked="OnContinueShoppingClicked" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout x:Name="OrderDetailsSection" Spacing="12" IsVisible="False">
+                <Label Text="✓" FontSize="28" TextColor="{StaticResource White}" BackgroundColor="{StaticResource BrandGreen600}"
+                       WidthRequest="48" HeightRequest="48" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" HorizontalOptions="Center" />
+                <Label Text="Order confirmed!" Style="{StaticResource H1}" HorizontalOptions="Center" />
+                <Label x:Name="OrderNumberLabel" Style="{StaticResource MutedLabel}" HorizontalOptions="Center" />
+
+                <Frame Style="{StaticResource CardFrame}">
+                    <VerticalStackLayout x:Name="ItemsStack" Spacing="4" />
+                </Frame>
+
+                <Frame Style="{StaticResource CardFrame}">
+                    <VerticalStackLayout x:Name="ShippingStack" Spacing="4" />
+                </Frame>
+
+                <Button Text="Continue shopping" Style="{StaticResource PrimaryButton}" Clicked="OnContinueShoppingClicked" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

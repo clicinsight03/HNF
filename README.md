@@ -9,8 +9,7 @@ backend and codebase, targeting .NET 10.
 Built and reviewed so far:
 
 - `HealingNaturalFarms.Domain` - shared entities/enums/DTOs. No external
-  dependencies; used by the API, the Blazor web app, and (eventually) the
-  MAUI app.
+  dependencies; used by the API, the Blazor web app, and the MAUI app.
 - `HealingNaturalFarms.Payments` - `IPaymentGateway` abstraction with
   Stripe, PayPal, and Razorpay implementations, called directly over
   `HttpClient` against each provider's REST API (no vendor SDK
@@ -24,14 +23,24 @@ Built and reviewed so far:
   prices/stock server-side, creates the order, hands off to whichever
   gateway the client chose), payment confirmation/verification, device
   registration + push notification sending (Firebase Cloud Messaging,
-  covers both Android and iOS from one integration).
+  covers both Android and iOS from one integration), order-confirmation
+  invoice emails (see "Order confirmation emails" below).
+- `HealingNaturalFarms.Web` - the Blazor Web App storefront (Interactive
+  Auto). Home, Shop (catalog with category/search/pagination), Product
+  Detail, Cart, Checkout (Stripe Payment Element / PayPal Buttons /
+  Razorpay Checkout all wired to the API), Login/Register, Order
+  Confirmation, and a full `hnf-*` CSS theme.
+- `HealingNaturalFarms.Maui` - the same storefront flows as a native
+  Android/iOS app: Shop, Product Detail, Cart, Checkout, Login/Register,
+  Order Confirmation, region switcher, and push-notification
+  registration plumbing (see "The MAUI app" below for what's real vs.
+  documented-gap).
 
-Scaffolded but **not yet customized**: `HealingNaturalFarms.Web` (a
-default .NET 10 Blazor Web App template) and the `.NET MAUI` project
-(not yet created). Those are the next phase - the storefront UI (region
-switcher, catalog browsing, cart, checkout screens) and the MAUI app
-(same flows + push notification registration) build directly on the API
-above.
+Not built: nothing from the original brief - everything above is at
+least a first, careful pass. What's genuinely incomplete is documented
+inline rather than silently skipped: a PDF invoice attachment, real
+Firebase/APNs push token retrieval, and app icon/font artwork (all
+noted at their point of use, with exactly what to add).
 
 ## An important note on verification
 
@@ -57,6 +66,23 @@ references. What I *could* verify:
   JWT bearer auth, Identity's EF store) and could not be build-verified
   here. On your own machine, with normal internet access, `dotnet
   restore` should work with no special setup.
+- `HealingNaturalFarms.Web.Client` (the Blazor WebAssembly project) and
+  `HealingNaturalFarms.Maui` also couldn't be build-verified - the
+  former needs a NuGet-restored WebAssembly package, and the latter
+  needs the `maui-android`/`maui-ios`/`maui-maccatalyst` workloads
+  (`dotnet workload install maui` also failed here: this sandbox is a
+  plain Linux container with no Android/iOS SDKs, and workload install
+  itself needs the same blocked NuGet access). Every Razor page and
+  every MAUI XAML file was instead checked by hand: DTO/enum field names
+  cross-referenced against the API, JS interop call signatures matched
+  argument-by-argument against `payments.js`/`checkout.html`, and every
+  `.xaml` file specifically re-validated as well-formed XML with a
+  script (which did catch one real bug - a `<!-- ---- ... ---- -->`
+  style comment with doubled hyphens, invalid per the XML spec, in
+  `Resources/Styles/Styles.xaml`). This is a real substitute for reading
+  the code carefully, but it is not the same guarantee a compiler gives
+  you - budget time for a first build-and-click-through on your own
+  machine before trusting this deeply.
 
 One version constraint worth knowing: **Pomelo's MySQL provider does not
 yet have an EF Core 10 release** (current stable is `9.0.0`, targeting EF
@@ -177,10 +203,97 @@ change. A PDF invoice attachment is a natural next step but wasn't added
 here to avoid pulling in a PDF-generation package sight-unseen; the HTML
 email already contains everything a PDF invoice would.
 
+## The MAUI app
+
+`src/HealingNaturalFarms.Maui` is a hand-authored .NET MAUI project
+(`dotnet new maui` isn't available in this sandbox - no workload, so the
+standard template structure was written out by hand: csproj,
+`MauiProgram.cs`, `App`/`AppShell`, and the minimal `Platforms/{Android,
+iOS, MacCatalyst}` boilerplate every MAUI app needs). It targets
+`net10.0-android`, `net10.0-ios`, and `net10.0-maccatalyst` - Windows was
+left out since the brief was Android + iOS specifically; add
+`net10.0-windows10.0.19041.0` back to the `TargetFrameworks` in the
+`.csproj` if you also want a Windows build.
+
+**Building it** needs the MAUI workload, which this sandbox couldn't
+install (`dotnet workload install maui` fails here - no Android/iOS SDKs
+in this Linux container, and the install itself needs the same blocked
+NuGet access):
+```bash
+dotnet workload install maui
+dotnet build src/HealingNaturalFarms.Maui -f net10.0-android
+# or -f net10.0-ios / -f net10.0-maccatalyst
+```
+
+**Structure** mirrors the Blazor storefront's `Services/` folder
+one-for-one, adapted to MAUI idioms rather than shared as one project
+(each client's auth/guest-header plumbing can then evolve
+independently):
+- `Services/ApiClient.cs` - the same REST calls as the web app's.
+- `Services/AuthState.cs` - the JWT session, but via `SecureStorage`
+  (Keychain/Keystore-backed) instead of the web app's localStorage,
+  since a mobile session typically lives far longer between launches.
+- `Services/RegionState.cs`, `GuestIdProvider.cs` - via `Preferences`
+  (unencrypted, appropriate for non-sensitive values).
+- `Services/CartState.cs`, `OrderState.cs` - identical contracts to the
+  web app's.
+- `Pages/` - `ShopPage` (region/department/category/search + a product
+  grid via `CollectionView`), `ProductDetailPage`, `CartPage`,
+  `CheckoutPage`, `LoginPage` (doubles as the Account tab), `RegisterPage`,
+  `OrderConfirmationPage`. Navigation is Shell-based: a bottom `TabBar`
+  (Shop/Cart/Account) plus pushed routes for detail/checkout/confirm/
+  register.
+- `Resources/Styles/Colors.xaml` + `Styles.xaml` - the same green/earth
+  palette as the web app's `app.css`, as MAUI styles/colors instead of
+  CSS.
+
+**Checkout's payment bridge** is the one genuinely tricky part of this
+app: a plain MAUI `WebView` (via `HtmlWebViewSource`) has no built-in
+JavaScript-to-C# call channel - that needs `HybridWebView`, a different,
+newer control. Rather than pull in a different control (or a payment
+SDK NuGet package sight-unseen), `CheckoutPage` loads
+`Resources/Raw/checkout.html` - a bundled page that mirrors the web
+app's `payments.js` logic (Stripe Elements / PayPal Buttons / Razorpay
+Checkout, loaded from each provider's CDN at runtime) - with the
+checkout details (`clientSecret`, provider order id, amount, etc.)
+substituted into it via plain string replacement before it's loaded.
+When that page has a payment result, it navigates to a
+`app://payment-result?...` URL instead of showing it; `CheckoutPage`
+intercepts that specific navigation in the WebView's `Navigating` event,
+cancels it before the WebView ever tries to actually load a nonsense
+URL, and parses the outcome out of the query string. This needed no new
+NuGet packages, but it does mean the device needs real internet access
+at checkout time to reach Stripe/PayPal/Razorpay's CDN scripts - same as
+any web checkout embedded in an app.
+
+**Push notifications** are wired up end-to-end except for the one leaf
+call that needs a Firebase/APNs package this sandbox can't install and
+verify: `Services/PushTokenService.cs` returns `null` in place of an
+actual device token, with a long doc comment on the exact package
+(Android needs a Firebase Messaging binding + `google-services.json`;
+iOS needs the Push Notifications capability + a Firebase iOS binding to
+exchange the raw APNs token for an FCM one) and native setup steps to
+add. Everything downstream of a real token already works:
+`Services/PushRegistrationService.cs` posts whatever token it gets to
+`api/notifications/devices` on app startup (see `App.xaml.cs`), and the
+server's `FirebasePushNotificationSender` (built in the API phase) sends
+through FCM's v1 API to it. `AndroidManifest.xml` already declares the
+Android 13+ `POST_NOTIFICATIONS` permission and `Info.plist`/
+`Entitlements.plist` already declare the iOS remote-notification
+background mode and `aps-environment` - the native plumbing is in place,
+only the token-retrieval package is missing.
+
+**Not included**: real app icon/splash artwork (plain placeholder SVGs
+- a green rounded square with a simple leaf glyph - swap
+`Resources/AppIcon/*.svg` and `Resources/Splash/splash.svg`) and custom
+fonts (none bundled; the app uses each OS's default font rather than
+referencing a `.ttf` file that doesn't exist).
+
 ## Opening in VS Code
 
 Open the `HealingNaturalFarms` folder directly. Install the "C# Dev Kit"
-extension if you don't have it. `dotnet build` from the integrated
+extension if you don't have it, and the ".NET MAUI" extension too if
+you'll be working on the mobile app. `dotnet build` from the integrated
 terminal is the fastest way to confirm everything restores correctly on
-your machine before you start customizing the Blazor storefront or
-adding the MAUI project.
+your machine - run `dotnet workload install maui` first if you haven't
+built a MAUI project on this machine before (see "The MAUI app" above).

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HealingNaturalFarms.Maui.Pages.ProductDetailPage"
+             Title="Product">
+
+    <Grid>
+        <ActivityIndicator x:Name="LoadingIndicator" IsRunning="True" HorizontalOptions="Center" VerticalOptions="Center" Color="{StaticResource BrandGreen600}" />
+
+        <ScrollView x:Name="ContentScroll" IsVisible="False">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <Grid HeightRequest="240" BackgroundColor="{StaticResource CreamCard}">
+                    <Image x:Name="MainImage" Aspect="AspectFill" />
+                </Grid>
+                <CollectionView x:Name="ThumbnailsView" HeightRequest="64" IsVisible="False">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Frame Padding="0" WidthRequest="60" HeightRequest="60" CornerRadius="6" IsClippedToBounds="True">
+                                <Image Source="{Binding .}" Aspect="AspectFill" />
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnThumbnailTapped" CommandParameter="{Binding .}" />
+                                </Frame.GestureRecognizers>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label x:Name="NameLabel" Style="{StaticResource H1}" />
+                <Label x:Name="SkuLabel" Style="{StaticResource MutedLabel}" />
+                <Label x:Name="PriceLabel" Style="{StaticResource PriceLabel}" FontSize="22" />
+                <Label x:Name="ShortDescriptionLabel" IsVisible="False" />
+
+                <VerticalStackLayout x:Name="AttributesStack" Spacing="4" />
+
+                <VerticalStackLayout x:Name="PurchaseStack" Spacing="10">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" HorizontalOptions="Start">
+                        <Label Grid.Column="0" Text="Quantity" VerticalOptions="Center" />
+                        <Button Grid.Column="1" Text="-" WidthRequest="40" Style="{StaticResource SecondaryButton}" Padding="0" Clicked="OnDecrementQty" />
+                        <Label x:Name="QtyLabel" Grid.Column="2" Text="1" VerticalOptions="Center" WidthRequest="30" HorizontalTextAlignment="Center" />
+                        <Button Grid.Column="3" Text="+" WidthRequest="40" Style="{StaticResource SecondaryButton}" Padding="0" Clicked="OnIncrementQty" />
+                    </Grid>
+                    <Button x:Name="AddToCartButton" Text="Add to cart" Style="{StaticResource PrimaryButton}" Clicked="OnAddToCartClicked" />
+                    <Label x:Name="AddedLabel" Text="Added to cart!" TextColor="{StaticResource BrandGreen700}" IsVisible="False" />
+                </VerticalStackLayout>
+
+                <Label x:Name="OutOfStockLabel" Text="Out of stock" Style="{StaticResource DangerBanner}" IsVisible="False" />
+
+                <Label x:Name="DescriptionHeaderLabel" Text="About this item" Style="{StaticResource H2}" IsVisible="False" />
+                <Label x:Name="DescriptionLabel" IsVisible="False" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
