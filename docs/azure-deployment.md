@@ -57,7 +57,7 @@ az mysql flexible-server create \
 ```
 Then open the firewall to your own IP (and later to App Service's
 outbound IPs, or use a VNet integration instead of public firewall rules
-for production), create the `healingnaturalfarms` database, and run the
+for production), create the `hnf` database, and run the
 script that's now in the repo:
 ```bash
 az mysql flexible-server firewall-rule create \

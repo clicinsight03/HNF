@@ -98,9 +98,9 @@ this pin once Pomelo ships an EF Core 10 build.
 
 1. **MySQL**: create a database and an app user, e.g.:
    ```sql
-   CREATE DATABASE healingnaturalfarms;
+   CREATE DATABASE hnf;
    CREATE USER 'hnf_app'@'%' IDENTIFIED BY 'change-me';
-   GRANT ALL PRIVILEGES ON healingnaturalfarms.* TO 'hnf_app'@'%';
+   GRANT ALL PRIVILEGES ON hnf.* TO 'hnf_app'@'%';
    ```
    Update `src/HealingNaturalFarms.Api/appsettings.json` ->
    `ConnectionStrings:Default` to match (or better, override it via user

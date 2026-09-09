@@ -23,11 +23,11 @@
 -- ordinal mapping for each enum is documented next to its column.
 -- =============================================================================
 
-CREATE DATABASE IF NOT EXISTS `healingnaturalfarms`
+CREATE DATABASE IF NOT EXISTS `hnf`
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE `healingnaturalfarms`;
+USE `hnf`;
 
 SET NAMES utf8mb4;
 
@@ -384,5 +384,5 @@ CREATE TABLE IF NOT EXISTS `Payments` (
 -- MySQL admin account rather than by hnf_app itself.
 -- =============================================================================
 -- CREATE USER IF NOT EXISTS 'hnf_app'@'%' IDENTIFIED BY 'CHANGE_ME';
--- GRANT SELECT, INSERT, UPDATE, DELETE ON `healingnaturalfarms`.* TO 'hnf_app'@'%';
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON `hnf`.* TO 'hnf_app'@'%';
 -- FLUSH PRIVILEGES;
