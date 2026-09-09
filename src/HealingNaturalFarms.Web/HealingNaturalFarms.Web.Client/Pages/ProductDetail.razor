@@ -1,0 +1,221 @@
+@page "/product/{Slug}"
+@inject ApiClient Api
+@inject RegionState Region
+@inject CartState Cart
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>@(_product?.Name ?? "Product") &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section">
+    @if (_loading)
+    {
+        <p class="hnf-muted">Loading&hellip;</p>
+    }
+    else if (_product is null)
+    {
+        <p class="hnf-muted">
+            This item isn't available in your current storefront region.
+            <a href="/">Back to home</a>
+        </p>
+    }
+    else
+    {
+        <nav class="hnf-breadcrumb">
+            <a href="/">Home</a> &rsaquo;
+            <a href="@($"/shop/{_product.ProductType}")">@(_product.ProductType == ProductType.Plant ? "Plants" : "Produce")</a> &rsaquo;
+            <span>@_product.Name</span>
+        </nav>
+
+        <div class="hnf-product-detail">
+            <div class="hnf-product-gallery">
+                @if (_product.ImageUrls.Count > 0)
+                {
+                    <div class="hnf-gallery-main">
+                        <img src="@_product.ImageUrls[_activeImage]" alt="@_product.Name" />
+                    </div>
+                    @if (_product.ImageUrls.Count > 1)
+                    {
+                        <div class="hnf-gallery-thumbs">
+                            @for (var i = 0; i < _product.ImageUrls.Count; i++)
+                            {
+                                var idx = i;
+                                <button class="hnf-gallery-thumb @(idx == _activeImage ? "hnf-active" : "")" @onclick="() => _activeImage = idx">
+                                    <img src="@_product.ImageUrls[idx]" alt="" />
+                                </button>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="hnf-gallery-main hnf-gallery-placeholder">
+                        <span>@(_product.ProductType == ProductType.Plant ? "🪴" : "🥬")</span>
+                    </div>
+                }
+            </div>
+
+            <div class="hnf-product-info">
+                <h1>@_product.Name</h1>
+                <p class="hnf-product-sku">SKU: @_product.Sku</p>
+
+                <div class="hnf-product-price-row">
+                    <span class="hnf-price hnf-price-lg">@FormatMoney(_product.Price, _product.Currency)</span>
+                    @if (_product.CompareAtPrice is not null && _product.CompareAtPrice > _product.Price)
+                    {
+                        <span class="hnf-price-compare">@FormatMoney(_product.CompareAtPrice.Value, _product.Currency)</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_product.ShortDescription))
+                {
+                    <p class="hnf-product-short-desc">@_product.ShortDescription</p>
+                }
+
+                <div class="hnf-attr-list">
+                    @if (_product.ProductType == ProductType.Plant)
+                    {
+                        @if (_product.SunlightNeeds is not null)
+                        {
+                            <div class="hnf-attr"><span>Sunlight</span><span>@FormatEnum(_product.SunlightNeeds.Value.ToString())</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_product.WateringFrequency))
+                        {
+                            <div class="hnf-attr"><span>Watering</span><span>@_product.WateringFrequency</span></div>
+                        }
+                        @if (_product.PotSizeCm is not null)
+                        {
+                            <div class="hnf-attr"><span>Pot size</span><span>@_product.PotSizeCm cm</span></div>
+                        }
+                        @if (_product.MatureHeightCm is not null)
+                        {
+                            <div class="hnf-attr"><span>Mature height</span><span>@_product.MatureHeightCm cm</span></div>
+                        }
+                        @if (_product.IsIndoor is not null)
+                        {
+                            <div class="hnf-attr"><span>Setting</span><span>@(_product.IsIndoor.Value ? "Indoor" : "Outdoor")</span></div>
+                        }
+                        @if (_product.IsPetSafe is not null)
+                        {
+                            <div class="hnf-attr"><span>Pet safe</span><span>@(_product.IsPetSafe.Value ? "Yes" : "No")</span></div>
+                        }
+                    }
+                    else
+                    {
+                        @if (_product.UnitOfSale is not null)
+                        {
+                            <div class="hnf-attr"><span>Sold</span><span>@FormatEnum(_product.UnitOfSale.Value.ToString())</span></div>
+                        }
+                        @if (_product.IsOrganic is not null)
+                        {
+                            <div class="hnf-attr"><span>Organic</span><span>@(_product.IsOrganic.Value ? "Yes" : "No")</span></div>
+                        }
+                        @if (_product.IsSeasonal is not null)
+                        {
+                            <div class="hnf-attr"><span>Seasonal</span><span>@(_product.IsSeasonal.Value ? "Yes" : "No")</span></div>
+                        }
+                    }
+                </div>
+
+                @if (_product.InStock)
+                {
+                    <div class="hnf-qty-row">
+                        <label>Quantity</label>
+                        <div class="hnf-qty-stepper">
+                            <button @onclick="() => _qty = Math.Max(1, _qty - 1)">&minus;</button>
+                            <span>@_qty</span>
+                            <button @onclick="() => _qty++">+</button>
+                        </div>
+                    </div>
+
+                    <button class="hnf-btn hnf-btn-primary hnf-btn-lg" @onclick="AddToCartAsync" disabled="@_adding">
+                        @(_adding ? "Adding..." : "Add to cart")
+                    </button>
+
+                    @if (_added)
+                    {
+                        <p class="hnf-confirm-msg">Added to cart. <a href="/cart">View cart &rarr;</a></p>
+                    }
+                }
+                else
+                {
+                    <p class="hnf-badge hnf-badge-out">Out of stock</p>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_product.Description))
+                {
+                    <div class="hnf-product-full-desc">
+                        <h3>About this @(_product.ProductType == ProductType.Plant ? "plant" : "item")</h3>
+                        <p>@_product.Description</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+
+    private ProductDetailDto? _product;
+    private bool _loading = true;
+    private int _activeImage;
+    private int _qty = 1;
+    private bool _adding;
+    private bool _added;
+
+    protected override void OnInitialized()
+    {
+        Region.Changed += OnRegionChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _activeImage = 0;
+        _added = false;
+        StateHasChanged();
+        _product = await Api.GetProductAsync(Slug, Region.Current);
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async void OnRegionChanged() => await InvokeAsync(LoadAsync);
+
+    private async Task AddToCartAsync()
+    {
+        if (_product is null) return;
+        _adding = true;
+        StateHasChanged();
+        try
+        {
+            await Cart.AddAsync(_product.Id, _qty);
+            _added = true;
+        }
+        finally
+        {
+            _adding = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatEnum(string value)
+    {
+        var withSpaces = System.Text.RegularExpressions.Regex.Replace(value, "(?<!^)([A-Z])", " $1");
+        return withSpaces;
+    }
+
+    private static string FormatMoney(decimal amount, CurrencyCode currency) =>
+        currency == CurrencyCode.USD ? amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))
+                                      : amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"));
+
+    public void Dispose()
+    {
+        Region.Changed -= OnRegionChanged;
+    }
+}

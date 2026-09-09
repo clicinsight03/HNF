@@ -1,0 +1,220 @@
+@page "/shop/{ProductTypeName}"
+@inject ApiClient Api
+@inject RegionState Region
+@inject CartState Cart
+@implements IDisposable
+
+<PageTitle>@Title &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section">
+    <div class="hnf-shop-layout">
+        <aside class="hnf-shop-sidebar">
+            <h3>Categories</h3>
+            <ul class="hnf-category-list">
+                <li>
+                    <button class="hnf-category-btn @(SelectedCategoryId is null ? "hnf-active" : "")" @onclick="() => SelectCategoryAsync(null)">
+                        All @Title
+                    </button>
+                </li>
+                @if (_categories is not null)
+                {
+                    @foreach (var c in _categories)
+                    {
+                        <li>
+                            <button class="hnf-category-btn @(SelectedCategoryId == c.Id ? "hnf-active" : "")" @onclick="() => SelectCategoryAsync(c.Id)">
+                                @c.Name
+                            </button>
+                        </li>
+                    }
+                }
+            </ul>
+
+            <div class="hnf-search-box">
+                <input type="search" placeholder="Search @Title.ToLowerInvariant()..." value="@_search" @oninput="OnSearchInput" />
+            </div>
+        </aside>
+
+        <section class="hnf-shop-main">
+            <div class="hnf-shop-header">
+                <h1>@Title</h1>
+                @if (_result is not null)
+                {
+                    <span class="hnf-result-count">@_result.TotalCount item@(_result.TotalCount == 1 ? "" : "s")</span>
+                }
+            </div>
+
+            @if (_loading)
+            {
+                <p class="hnf-muted">Loading&hellip;</p>
+            }
+            else if (_result is null || _result.Items.Count == 0)
+            {
+                <p class="hnf-muted">No products found@(string.IsNullOrWhiteSpace(_search) ? "." : $" for \"{_search}\".")</p>
+            }
+            else
+            {
+                <div class="hnf-product-grid">
+                    @foreach (var p in _result.Items)
+                    {
+                        <div class="hnf-product-card">
+                            <a href="@($"/product/{p.Slug}")" class="hnf-product-card-link">
+                                <div class="hnf-product-thumb">
+                                    @if (!string.IsNullOrWhiteSpace(p.ThumbnailUrl))
+                                    {
+                                        <img src="@p.ThumbnailUrl" alt="@p.Name" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <span class="hnf-thumb-placeholder">@(p.ProductType == ProductType.Plant ? "🪴" : "🥬")</span>
+                                    }
+                                </div>
+                                <h4>@p.Name</h4>
+                            </a>
+                            <div class="hnf-product-price">
+                                <span class="hnf-price">@FormatMoney(p.Price, p.Currency)</span>
+                                @if (p.CompareAtPrice is not null && p.CompareAtPrice > p.Price)
+                                {
+                                    <span class="hnf-price-compare">@FormatMoney(p.CompareAtPrice.Value, p.Currency)</span>
+                                }
+                            </div>
+                            @if (!p.InStock)
+                            {
+                                <span class="hnf-badge hnf-badge-out">Out of stock</span>
+                            }
+                            else
+                            {
+                                <button class="hnf-btn hnf-btn-primary hnf-btn-block" @onclick="() => AddToCartAsync(p.Id)" disabled="@_addingId.Contains(p.Id)">
+                                    @(_addingId.Contains(p.Id) ? "Adding..." : "Add to cart")
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (_result.TotalCount > _result.PageSize)
+                {
+                    <div class="hnf-pagination">
+                        <button class="hnf-btn hnf-btn-secondary" disabled="@(_page <= 1)" @onclick="() => ChangePageAsync(_page - 1)">&larr; Prev</button>
+                        <span>Page @_page of @TotalPages</span>
+                        <button class="hnf-btn hnf-btn-secondary" disabled="@(_page >= TotalPages)" @onclick="() => ChangePageAsync(_page + 1)">Next &rarr;</button>
+                    </div>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ProductTypeName { get; set; } = "Plant";
+
+    private ProductType _productType;
+    private string Title => _productType == ProductType.Plant ? "Plants" : "Produce";
+
+    private IReadOnlyList<CategoryDto>? _categories;
+    private PagedResult<ProductListItemDto>? _result;
+    private int? SelectedCategoryId;
+    private string _search = "";
+    private int _page = 1;
+    private bool _loading = true;
+    private readonly HashSet<int> _addingId = new();
+    private CancellationTokenSource? _searchDebounce;
+
+    private int TotalPages => _result is null || _result.PageSize == 0 ? 1 : (int)Math.Ceiling(_result.TotalCount / (double)_result.PageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _productType = Enum.TryParse<ProductType>(ProductTypeName, ignoreCase: true, out var pt) ? pt : ProductType.Plant;
+        SelectedCategoryId = null;
+        _search = "";
+        _page = 1;
+        await LoadCategoriesAsync();
+        await LoadProductsAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        Region.Changed += OnRegionChanged;
+    }
+
+    private async void OnRegionChanged() => await InvokeAsync(LoadProductsAsync);
+
+    private async Task LoadCategoriesAsync()
+    {
+        _categories = await Api.GetCategoriesAsync(_productType);
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        _result = await Api.GetProductsAsync(Region.Current, _productType, SelectedCategoryId, _search, _page);
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectCategoryAsync(int? categoryId)
+    {
+        SelectedCategoryId = categoryId;
+        _page = 1;
+        await LoadProductsAsync();
+    }
+
+    private async Task ChangePageAsync(int page)
+    {
+        _page = page;
+        await LoadProductsAsync();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+
+        _searchDebounce?.Cancel();
+        var cts = new CancellationTokenSource();
+        _searchDebounce = cts;
+
+        _ = DebouncedSearchAsync(cts.Token);
+    }
+
+    private async Task DebouncedSearchAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(350, ct);
+            if (!ct.IsCancellationRequested)
+            {
+                await InvokeAsync(LoadProductsAsync);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // superseded by newer keystroke
+        }
+    }
+
+    private async Task AddToCartAsync(int productId)
+    {
+        _addingId.Add(productId);
+        StateHasChanged();
+        try
+        {
+            await Cart.AddAsync(productId, 1);
+        }
+        finally
+        {
+            _addingId.Remove(productId);
+            StateHasChanged();
+        }
+    }
+
+    private static string FormatMoney(decimal amount, CurrencyCode currency) =>
+        currency == CurrencyCode.USD ? amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))
+                                      : amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"));
+
+    public void Dispose()
+    {
+        Region.Changed -= OnRegionChanged;
+        _searchDebounce?.Cancel();
+    }
+}

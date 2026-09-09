@@ -23,6 +23,7 @@ builder.Services.AddScoped<RegionState>();
 builder.Services.AddScoped<AuthState>();
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<CartState>();
+builder.Services.AddScoped<OrderState>();
 
 var app = builder.Build();
 

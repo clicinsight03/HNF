@@ -1,0 +1,93 @@
+@page "/register"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject RegionState Region
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Create account &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section hnf-auth-page">
+    <div class="hnf-auth-card">
+        <h1>Create your account</h1>
+
+        <EditForm Model="_form" OnValidSubmit="SubmitAsync">
+            <div class="hnf-form-row">
+                <label>First name
+                    <InputText @bind-Value="_form.FirstName" required />
+                </label>
+                <label>Last name
+                    <InputText @bind-Value="_form.LastName" required />
+                </label>
+            </div>
+            <label>Email
+                <InputText @bind-Value="_form.Email" type="email" required />
+            </label>
+            <label>Password
+                <InputText @bind-Value="_form.Password" type="password" required />
+            </label>
+            <label>Preferred storefront
+                <select @bind="_form.PreferredRegion">
+                    <option value="@RegionCode.US">United States (USD)</option>
+                    <option value="@RegionCode.IN">India (INR)</option>
+                </select>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <p class="hnf-error-msg">@_error</p>
+            }
+
+            <button type="submit" class="hnf-btn hnf-btn-primary hnf-btn-block hnf-btn-lg" disabled="@_busy">
+                @(_busy ? "Creating account..." : "Create account")
+            </button>
+        </EditForm>
+
+        <p class="hnf-auth-switch">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+</div>
+
+@code {
+    private readonly RegisterFormModel _form = new();
+    private bool _busy;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        _form.PreferredRegion = Region.Current;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Api.RegisterAsync(new RegisterRequest(_form.Email, _form.Password, _form.FirstName, _form.LastName, _form.PreferredRegion));
+            if (response is null)
+            {
+                _error = "Couldn't create your account. The email may already be registered, or the password may not meet requirements.";
+                return;
+            }
+
+            await Auth.SignInAsync(JS, response.AccessToken, response.ExpiresAt, response.Email, response.FirstName, response.PreferredRegion);
+            Nav.NavigateTo("/");
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    private sealed class RegisterFormModel
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public RegionCode PreferredRegion { get; set; }
+    }
+}

@@ -1,7 +1,53 @@
-﻿@page "/"
+@page "/"
+@inject RegionState Region
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Healing Natural Farms &mdash; Plants &amp; Produce</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="hnf-hero">
+    <div class="hnf-container hnf-hero-inner">
+        <h1>Healing Natural Farms</h1>
+        <p class="hnf-hero-tag">
+            Healthy plants and fresh, farm-grown produce
+            &mdash; delivered @(Region.Current == RegionCode.US ? "across the United States" : "across India").
+        </p>
+        <div class="hnf-hero-actions">
+            <a class="hnf-btn hnf-btn-primary" href="/shop/Plant">Shop Plants</a>
+            <a class="hnf-btn hnf-btn-secondary" href="/shop/Produce">Shop Produce</a>
+        </div>
+    </div>
+</section>
 
-Welcome to your new app.
+<section class="hnf-container hnf-section">
+    <div class="hnf-dept-grid">
+        <a class="hnf-dept-card" href="/shop/Plant">
+            <span class="hnf-dept-icon">🪴</span>
+            <h2>Plants</h2>
+            <p>Indoor and outdoor plants, herbs, and saplings &mdash; picked and packed to arrive thriving.</p>
+        </a>
+        <a class="hnf-dept-card" href="/shop/Produce">
+            <span class="hnf-dept-icon">🥬</span>
+            <h2>Produce</h2>
+            <p>Seasonal fruits and vegetables, harvested fresh from our partner farms.</p>
+        </a>
+    </div>
+</section>
+
+<section class="hnf-container hnf-section hnf-features">
+    <div class="hnf-feature">
+        <span class="hnf-feature-icon">🌱</span>
+        <h3>Grown with care</h3>
+        <p>Every plant and pick is inspected before it ships.</p>
+    </div>
+    <div class="hnf-feature">
+        <span class="hnf-feature-icon">🔒</span>
+        <h3>Secure checkout</h3>
+        <p>
+            @(Region.Current == RegionCode.US ? "Pay safely with Stripe or PayPal." : "Pay safely with Razorpay - cards, UPI, netbanking and more.")
+        </p>
+    </div>
+    <div class="hnf-feature">
+        <span class="hnf-feature-icon">🚚</span>
+        <h3>Local storefronts</h3>
+        <p>Pricing, currency, and availability shown for your region &mdash; switch anytime from the header.</p>
+    </div>
+</section>

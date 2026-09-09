@@ -1,0 +1,74 @@
+@page "/order-confirmation"
+@inject OrderState OrderState
+
+<PageTitle>Order Confirmed &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section hnf-order-confirmation">
+    @if (OrderState.LastOrder is null)
+    {
+        <div class="hnf-empty-state">
+            <span class="hnf-dept-icon">🌿</span>
+            <h1>Thanks for your order!</h1>
+            <p class="hnf-muted">We couldn't find the order details for this page &mdash; check your email for your confirmation, or continue shopping.</p>
+            <a class="hnf-btn hnf-btn-primary" href="/shop/Plant">Continue shopping</a>
+        </div>
+    }
+    else
+    {
+        @{ var order = OrderState.LastOrder!; }
+        <div class="hnf-confirmation-card">
+            <span class="hnf-confirm-icon">&#10003;</span>
+            <h1>Order confirmed!</h1>
+            <p class="hnf-muted">Order <strong>@order.OrderNumber</strong> &middot; placed @order.CreatedAt.ToLocalTime().ToString("f")</p>
+
+            <div class="hnf-order-items">
+                @foreach (var item in order.Items)
+                {
+                    <div class="hnf-summary-row">
+                        <span>@item.Name &times; @item.Quantity</span>
+                        <span>@FormatMoney(item.LineTotal, order.Currency)</span>
+                    </div>
+                }
+                <hr />
+                <div class="hnf-summary-row">
+                    <span>Subtotal</span>
+                    <span>@FormatMoney(order.Subtotal, order.Currency)</span>
+                </div>
+                <div class="hnf-summary-row">
+                    <span>Shipping</span>
+                    <span>@FormatMoney(order.ShippingCost, order.Currency)</span>
+                </div>
+                <div class="hnf-summary-row">
+                    <span>Tax</span>
+                    <span>@FormatMoney(order.Tax, order.Currency)</span>
+                </div>
+                <div class="hnf-summary-row hnf-summary-total">
+                    <span>Total</span>
+                    <span>@FormatMoney(order.Total, order.Currency)</span>
+                </div>
+            </div>
+
+            <div class="hnf-ship-to">
+                <h4>Shipping to</h4>
+                <p>
+                    @order.ShippingAddress.FullName<br />
+                    @order.ShippingAddress.Line1<br />
+                    @if (!string.IsNullOrWhiteSpace(order.ShippingAddress.Line2))
+                    {
+                        @order.ShippingAddress.Line2<br />
+                    }
+                    @order.ShippingAddress.City, @order.ShippingAddress.State @order.ShippingAddress.PostalCode<br />
+                    @order.ShippingAddress.Country
+                </p>
+            </div>
+
+            <a class="hnf-btn hnf-btn-primary" href="/shop/Plant">Continue shopping</a>
+        </div>
+    }
+</div>
+
+@code {
+    private static string FormatMoney(decimal amount, CurrencyCode currency) =>
+        currency == CurrencyCode.USD ? amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))
+                                      : amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"));
+}

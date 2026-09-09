@@ -1,0 +1,361 @@
+@page "/checkout"
+@inject ApiClient Api
+@inject RegionState Region
+@inject CartState Cart
+@inject AuthState Auth
+@inject OrderState OrderState
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Checkout &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section hnf-checkout">
+    <h1>Checkout</h1>
+
+    @if (Cart.Cart is null || Cart.Cart.Items.Count == 0)
+    {
+        <p class="hnf-muted">
+            Your cart is empty. <a href="/shop/Plant">Go shopping</a>.
+        </p>
+    }
+    else if (_step == CheckoutStep.Address)
+    {
+        <div class="hnf-checkout-layout">
+            <div class="hnf-checkout-form">
+                <h3>Shipping details</h3>
+                <EditForm Model="_form" OnValidSubmit="StartPaymentAsync">
+                    <DataAnnotationsValidator />
+
+                    <label>Full name
+                        <InputText @bind-Value="_form.FullName" required />
+                    </label>
+                    <label>Email
+                        <InputText @bind-Value="_form.ContactEmail" type="email" required />
+                    </label>
+                    <label>Phone
+                        <InputText @bind-Value="_form.ContactPhone" />
+                    </label>
+                    <label>Address line 1
+                        <InputText @bind-Value="_form.Line1" required />
+                    </label>
+                    <label>Address line 2 (optional)
+                        <InputText @bind-Value="_form.Line2" />
+                    </label>
+                    <div class="hnf-form-row">
+                        <label>City
+                            <InputText @bind-Value="_form.City" required />
+                        </label>
+                        <label>State / Province
+                            <InputText @bind-Value="_form.State" required />
+                        </label>
+                    </div>
+                    <div class="hnf-form-row">
+                        <label>Postal code
+                            <InputText @bind-Value="_form.PostalCode" required />
+                        </label>
+                        <label>Country
+                            <InputText @bind-Value="_form.Country" required />
+                        </label>
+                    </div>
+
+                    <h3>Payment method</h3>
+                    <div class="hnf-provider-list">
+                        @foreach (var provider in AvailableProviders)
+                        {
+                            <label class="hnf-provider-option">
+                                <input type="radio" name="provider" checked="@(_form.Provider == provider)" @onchange="() => _form.Provider = provider" />
+                                @ProviderLabel(provider)
+                            </label>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <p class="hnf-error-msg">@_error</p>
+                    }
+
+                    <button type="submit" class="hnf-btn hnf-btn-primary hnf-btn-lg hnf-btn-block" disabled="@_submitting">
+                        @(_submitting ? "Please wait..." : $"Continue to pay {FormatMoney(Cart.Cart.Subtotal)}")
+                    </button>
+                </EditForm>
+            </div>
+
+            <div class="hnf-cart-summary">
+                <h3>Order Summary</h3>
+                @foreach (var item in Cart.Cart.Items)
+                {
+                    <div class="hnf-summary-row">
+                        <span>@item.Name &times; @item.Quantity</span>
+                        <span>@FormatMoney(item.LineTotal)</span>
+                    </div>
+                }
+                <hr />
+                <div class="hnf-summary-row hnf-summary-total">
+                    <span>Subtotal</span>
+                    <span>@FormatMoney(Cart.Cart.Subtotal)</span>
+                </div>
+                <p class="hnf-muted hnf-small">Final total (with shipping) is confirmed on the next step.</p>
+            </div>
+        </div>
+    }
+    else if (_step == CheckoutStep.Pay && _checkout is not null)
+    {
+        <div class="hnf-checkout-pay">
+            <h3>Pay @FormatMoney(_checkout.Amount)</h3>
+            <p class="hnf-muted">Order @_checkout.OrderNumber</p>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <p class="hnf-error-msg">@_error</p>
+            }
+
+            @if (_checkout.Provider == PaymentProvider.Stripe)
+            {
+                <div id="stripe-payment-element" class="hnf-payment-widget"></div>
+                <button class="hnf-btn hnf-btn-primary hnf-btn-lg hnf-btn-block" @onclick="ConfirmStripeAsync" disabled="@_confirming">
+                    @(_confirming ? "Processing..." : $"Pay {FormatMoney(_checkout.Amount)}")
+                </button>
+            }
+            else if (_checkout.Provider == PaymentProvider.PayPal)
+            {
+                <div id="paypal-button-container" class="hnf-payment-widget"></div>
+            }
+            else if (_checkout.Provider == PaymentProvider.Razorpay)
+            {
+                <button class="hnf-btn hnf-btn-primary hnf-btn-lg hnf-btn-block" @onclick="OpenRazorpayAsync" disabled="@_confirming">
+                    @(_confirming ? "Processing..." : $"Pay {FormatMoney(_checkout.Amount)} with Razorpay")
+                </button>
+            }
+
+            <button class="hnf-link-btn" @onclick="() => _step = CheckoutStep.Address">&larr; Back to shipping details</button>
+        </div>
+    }
+</div>
+
+@code {
+    private enum CheckoutStep { Address, Pay }
+    private CheckoutStep _step = CheckoutStep.Address;
+
+    private readonly CheckoutForm _form = new();
+    private CreateCheckoutResponse? _checkout;
+    private bool _submitting;
+    private bool _confirming;
+    private bool _stripeInitialized;
+    private bool _paypalInitialized;
+    private string? _error;
+    private DotNetObjectReference<Checkout>? _selfRef;
+
+    private IReadOnlyList<PaymentProvider> AvailableProviders =>
+        Region.Current == RegionCode.US
+            ? new[] { PaymentProvider.Stripe, PaymentProvider.PayPal }
+            : new[] { PaymentProvider.Razorpay };
+
+    protected override void OnInitialized()
+    {
+        _form.Provider = AvailableProviders[0];
+        _form.ContactEmail = Auth.Email ?? "";
+        _form.FullName = Auth.FirstName ?? "";
+        _form.Country = Region.Current == RegionCode.US ? "United States" : "India";
+        Region.Changed += OnRegionChanged;
+    }
+
+    private void OnRegionChanged()
+    {
+        if (!AvailableProviders.Contains(_form.Provider))
+        {
+            _form.Provider = AvailableProviders[0];
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartPaymentAsync()
+    {
+        if (Cart.Cart is null) return;
+        _submitting = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var request = new CreateCheckoutRequest(
+                Cart.Cart.CartId,
+                _form.Provider,
+                new AddressDto(null, _form.FullName, _form.Line1, _form.Line2, _form.City, _form.State, _form.PostalCode, _form.Country, _form.ContactPhone),
+                _form.ContactEmail,
+                _form.ContactPhone);
+
+            _checkout = await Api.CreateCheckoutAsync(request);
+            if (_checkout is null)
+            {
+                _error = "Could not start checkout. Please try again.";
+                return;
+            }
+
+            _stripeInitialized = false;
+            _paypalInitialized = false;
+            _step = CheckoutStep.Pay;
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Checkout failed: {ex.Message}";
+        }
+        finally
+        {
+            _submitting = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_step != CheckoutStep.Pay || _checkout is null) return;
+
+        if (_checkout.Provider == PaymentProvider.Stripe && !_stripeInitialized
+            && !string.IsNullOrEmpty(_checkout.ClientSecret) && !string.IsNullOrEmpty(_checkout.ProviderPublicKey))
+        {
+            _stripeInitialized = true;
+            await JS.InvokeVoidAsync("hnfPayments.initStripe", _checkout.ProviderPublicKey, _checkout.ClientSecret, "stripe-payment-element");
+        }
+        else if (_checkout.Provider == PaymentProvider.PayPal && !_paypalInitialized
+            && !string.IsNullOrEmpty(_checkout.ProviderOrderId) && !string.IsNullOrEmpty(_checkout.ProviderPublicKey))
+        {
+            _paypalInitialized = true;
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("hnfPayments.loadAndRenderPayPalButtons",
+                _checkout.ProviderPublicKey, _checkout.Currency.ToString(), "paypal-button-container", _checkout.ProviderOrderId, _selfRef);
+        }
+    }
+
+    private async Task ConfirmStripeAsync()
+    {
+        _confirming = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await JS.InvokeAsync<StripeConfirmResult>("hnfPayments.confirmStripePayment");
+            if (!result.Success)
+            {
+                _error = result.Message ?? "Payment failed.";
+                return;
+            }
+
+            await FinalizeOrderAsync(PaymentProvider.Stripe, result.PaymentIntentId!, null);
+        }
+        finally
+        {
+            _confirming = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenRazorpayAsync()
+    {
+        if (_checkout is null) return;
+        _error = null;
+        _selfRef ??= DotNetObjectReference.Create(this);
+
+        var amountInSmallestUnit = (long)Math.Round(_checkout.Amount * 100, MidpointRounding.AwayFromZero);
+        await JS.InvokeVoidAsync("hnfPayments.openRazorpayCheckout",
+            _checkout.ProviderPublicKey, _checkout.ProviderOrderId, amountInSmallestUnit,
+            _checkout.Currency.ToString(), "Healing Natural Farms", $"Order {_checkout.OrderNumber}", _selfRef);
+    }
+
+    [JSInvokable]
+    public async Task OnPayPalApproved(string orderId)
+    {
+        await FinalizeOrderAsync(PaymentProvider.PayPal, orderId, null);
+    }
+
+    [JSInvokable]
+    public async Task OnRazorpaySuccess(string paymentId, string orderId, string signature)
+    {
+        await FinalizeOrderAsync(PaymentProvider.Razorpay, paymentId, signature);
+    }
+
+    [JSInvokable]
+    public void OnPaymentCancelled()
+    {
+        _error = "Payment was cancelled.";
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnPaymentError(string message)
+    {
+        _error = message;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FinalizeOrderAsync(PaymentProvider provider, string providerPaymentReference, string? signature)
+    {
+        if (_checkout is null) return;
+        _confirming = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var order = await Api.ConfirmPaymentAsync(new ConfirmPaymentRequest(_checkout.OrderId, provider, providerPaymentReference, signature));
+            if (order is null)
+            {
+                _error = "We couldn't confirm your payment. Please contact support with your order number.";
+                return;
+            }
+
+            OrderState.SetLastOrder(order);
+            await Cart.ClearAsync();
+            Nav.NavigateTo("/order-confirmation");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"We couldn't confirm your payment: {ex.Message}";
+        }
+        finally
+        {
+            _confirming = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string ProviderLabel(PaymentProvider provider) => provider switch
+    {
+        PaymentProvider.Stripe => "Card (Stripe)",
+        PaymentProvider.PayPal => "PayPal",
+        PaymentProvider.Razorpay => "Cards / UPI / Netbanking (Razorpay)",
+        _ => provider.ToString()
+    };
+
+    private string FormatMoney(decimal amount) =>
+        Region.Current == RegionCode.US
+            ? amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))
+            : amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"));
+
+    private sealed class CheckoutForm
+    {
+        public string FullName { get; set; } = "";
+        public string ContactEmail { get; set; } = "";
+        public string? ContactPhone { get; set; }
+        public string Line1 { get; set; } = "";
+        public string? Line2 { get; set; }
+        public string City { get; set; } = "";
+        public string State { get; set; } = "";
+        public string PostalCode { get; set; } = "";
+        public string Country { get; set; } = "";
+        public PaymentProvider Provider { get; set; }
+    }
+
+    private sealed class StripeConfirmResult
+    {
+        public bool Success { get; set; }
+        public string? PaymentIntentId { get; set; }
+        public string? Message { get; set; }
+    }
+
+    public void Dispose()
+    {
+        Region.Changed -= OnRegionChanged;
+        _selfRef?.Dispose();
+    }
+}

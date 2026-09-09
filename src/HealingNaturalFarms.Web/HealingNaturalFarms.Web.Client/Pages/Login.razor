@@ -1,0 +1,70 @@
+@page "/login"
+@inject ApiClient Api
+@inject AuthState Auth
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Sign in &mdash; Healing Natural Farms</PageTitle>
+
+<div class="hnf-container hnf-section hnf-auth-page">
+    <div class="hnf-auth-card">
+        <h1>Sign in</h1>
+
+        <EditForm Model="_form" OnValidSubmit="SubmitAsync">
+            <label>Email
+                <InputText @bind-Value="_form.Email" type="email" required />
+            </label>
+            <label>Password
+                <InputText @bind-Value="_form.Password" type="password" required />
+            </label>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <p class="hnf-error-msg">@_error</p>
+            }
+
+            <button type="submit" class="hnf-btn hnf-btn-primary hnf-btn-block hnf-btn-lg" disabled="@_busy">
+                @(_busy ? "Signing in..." : "Sign in")
+            </button>
+        </EditForm>
+
+        <p class="hnf-auth-switch">New here? <a href="/register">Create an account</a></p>
+    </div>
+</div>
+
+@code {
+    private readonly LoginFormModel _form = new();
+    private bool _busy;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Api.LoginAsync(new LoginRequest(_form.Email, _form.Password));
+            if (response is null)
+            {
+                _error = "Invalid email or password.";
+                return;
+            }
+
+            await Auth.SignInAsync(JS, response.AccessToken, response.ExpiresAt, response.Email, response.FirstName, response.PreferredRegion);
+            Nav.NavigateTo("/");
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    private sealed class LoginFormModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}
