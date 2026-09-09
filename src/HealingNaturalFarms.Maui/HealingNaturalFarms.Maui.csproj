@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+    <!--
+      Windows is deliberately left out of TargetFrameworks here. The
+      standard `dotnet new maui` template would add
+      net10.0-windows10.0.19041.0, but that TFM only builds/runs on a
+      Windows host with the Windows workload installed, and this app's
+      brief was Android + iOS. Add it back
+      (`;net10.0-windows10.0.19041.0`) if you also want a Windows
+      Machine/WinUI target - nothing else in this project depends on
+      Android/iOS specifically except the Platforms/Android and
+      Platforms/iOS folders, which only compile for their own TFM.
+    -->
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HealingNaturalFarms.Maui</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Display name and bundle/package id - change these before publishing to a store. -->
+    <ApplicationTitle>Healing Natural Farms</ApplicationTitle>
+    <ApplicationId>com.healingnaturalfarms.app</ApplicationId>
+    <ApplicationIdGuid>2F1B7B7E-6C9A-4B7A-9B0E-2B7B6E6C9A4B</ApplicationIdGuid>
+
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- App Icon -->
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#1f3d2b" />
+
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#1f3d2b" BaseSize="128,128" />
+
+    <!-- Images (tab icons, product placeholders, etc. - drop files into Resources/Images) -->
+    <MauiImage Include="Resources\Images\*" />
+
+    <!-- Custom Fonts (none bundled yet - see the note in MauiProgram.cs) -->
+    <MauiFont Include="Resources\Fonts\*" />
+
+    <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+    <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      No Firebase/APNs NuGet packages are referenced here - this sandbox
+      has no NuGet access to verify them against, and pinning a push
+      library sight-unseen would be worse than leaving a documented gap.
+      Services/PushTokenService.*.cs below has the exact package + native
+      config steps to add on your own machine. Everything else needed to
+      register whatever token that library hands you (POST
+      api/notifications/devices) is already wired up.
+    -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HealingNaturalFarms.Domain\HealingNaturalFarms.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

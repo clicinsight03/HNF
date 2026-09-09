@@ -9,4 +9,7 @@
     <Project Path="src/HealingNaturalFarms.Web/HealingNaturalFarms.Web.Client/HealingNaturalFarms.Web.Client.csproj" />
     <Project Path="src/HealingNaturalFarms.Web/HealingNaturalFarms.Web/HealingNaturalFarms.Web.csproj" />
   </Folder>
+  <Folder Name="/src/HealingNaturalFarms.Maui/">
+    <Project Path="src/HealingNaturalFarms.Maui/HealingNaturalFarms.Maui.csproj" />
+  </Folder>
 </Solution>

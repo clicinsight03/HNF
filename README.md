@@ -120,6 +120,10 @@ this pin once Pomelo ships an EF Core 10 build.
   > Generate new private key) - point `ServiceAccountJsonPath` at it and
   keep the file itself out of source control (it's in `.gitignore`
   already via the `firebase-service-account*.json` pattern).
+- **Email** - SMTP credentials for sending the order-confirmation/invoice
+  email (see "Order confirmation emails" below). Works with any SMTP
+  provider - Gmail SMTP, or the SMTP relay endpoint of SendGrid, Mailgun,
+  Postmark, AWS SES, etc.
 
 For local dev, prefer `dotnet user-secrets` over editing
 `appsettings.json` directly:
@@ -128,6 +132,50 @@ cd src/HealingNaturalFarms.Api
 dotnet user-secrets init
 dotnet user-secrets set "Payments:Stripe:SecretKey" "sk_test_..."
 ```
+
+## Order confirmation emails
+
+Every successfully paid order (US or India, any of the three gateways,
+guest or signed-in) triggers an email to the customer's checkout email
+address: `IOrderEmailSender` (`src/HealingNaturalFarms.Api/Services/OrderEmailSender.cs`),
+sent from `CheckoutService.ConfirmPaymentAsync` right after the order is
+marked `Paid`. The email includes the order/invoice number
+(`order.OrderNumber`, e.g. `HNF-US-482913`), every line item with its
+quantity, unit price and line total, the subtotal/shipping/tax/total
+breakdown, and the shipping address - both an HTML view (what most
+inboxes render) and a plain-text fallback.
+
+It's sent over plain SMTP via the .NET base class library's
+`System.Net.Mail.SmtpClient` - deliberately not a NuGet mail package,
+for the same reason the payment gateways use raw `HttpClient` instead of
+vendor SDKs: this sandbox has no NuGet access to verify one against, and
+`SmtpClient` needs nothing beyond credentials to work with any SMTP
+provider. Configure it via the `Email` section in `appsettings.json` (or
+`dotnet user-secrets`, same as the other secrets above):
+
+```json
+"Email": {
+  "SmtpHost": "smtp.yourprovider.com",
+  "SmtpPort": 587,
+  "EnableSsl": true,
+  "Username": "your-smtp-username",
+  "Password": "your-smtp-password",
+  "FromEmail": "orders@healingnaturalfarms.com",
+  "FromName": "Healing Natural Farms"
+}
+```
+
+Sending is best-effort and never blocks or fails the checkout response -
+same contract as the push-notification send right above it in
+`CheckoutService`: if the mail server is unreachable or misconfigured,
+the order is still correctly saved as paid, and the failure is swallowed
+rather than surfaced to the shopper. If you later want a more actively
+maintained mail client (connection pooling, retries, DKIM helpers) once
+you have NuGet access, MailKit's `SmtpClient` is a drop-in swap behind
+the same `IOrderEmailSender` interface - nothing else in the app needs to
+change. A PDF invoice attachment is a natural next step but wasn't added
+here to avoid pulling in a PDF-generation package sight-unseen; the HTML
+email already contains everything a PDF invoice would.
 
 ## Opening in VS Code
 

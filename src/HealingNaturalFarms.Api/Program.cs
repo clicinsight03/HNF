@@ -78,6 +78,11 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 builder.Services.AddHttpClient<IPushNotificationSender, FirebasePushNotificationSender>();
 
+// ---- Order confirmation email (SMTP - see OrderEmailSender for why no
+// NuGet mail package is used) --------------------------------------------
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.AddScoped<IOrderEmailSender, OrderEmailSender>();
+
 // ---- CORS (Blazor Web + MAUI app) -------------------------------------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>

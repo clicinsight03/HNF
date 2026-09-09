@@ -21,7 +21,7 @@ public interface ICheckoutService
 /// (flat shipping, no tax) - swap ComputeTax/ComputeShipping for real
 /// logic (a tax API, carrier rates) when that's ready.
 /// </summary>
-public class CheckoutService(AppDbContext db, IPaymentGatewayResolver gatewayResolver, IPushNotificationSender pushSender) : ICheckoutService
+public class CheckoutService(AppDbContext db, IPaymentGatewayResolver gatewayResolver, IPushNotificationSender pushSender, IOrderEmailSender emailSender) : ICheckoutService
 {
     private static readonly Random OrderNumberRandom = new();
 
@@ -185,9 +185,14 @@ public class CheckoutService(AppDbContext db, IPaymentGatewayResolver gatewayRes
 
         await db.SaveChangesAsync(ct);
 
-        if (verification.Success && order.UserId is not null)
+        if (verification.Success)
         {
-            await NotifyOrderPaidAsync(order.UserId.Value, order.OrderNumber, ct);
+            if (order.UserId is not null)
+            {
+                await NotifyOrderPaidAsync(order.UserId.Value, order.OrderNumber, ct);
+            }
+
+            await EmailOrderConfirmationAsync(order, ct);
         }
 
         return new OrderDetailDto(
@@ -222,6 +227,26 @@ public class CheckoutService(AppDbContext db, IPaymentGatewayResolver gatewayRes
                 // deployment; swallow here so one bad token doesn't block
                 // the others or the checkout response.
             }
+        }
+    }
+
+    /// <summary>Same best-effort contract as NotifyOrderPaidAsync above -
+    /// the customer's payment already succeeded and the order is already
+    /// saved as Paid, so a flaky mail server must never turn that into a
+    /// failed checkout response. Guest orders (order.UserId is null) still
+    /// get emailed, since ContactEmail is collected at checkout regardless
+    /// of whether the shopper has an account.</summary>
+    private async Task EmailOrderConfirmationAsync(Order order, CancellationToken ct)
+    {
+        try
+        {
+            await emailSender.SendOrderConfirmationAsync(order, ct);
+        }
+        catch
+        {
+            // Logged by the SMTP client's own diagnostics/telemetry in a
+            // real deployment; swallow here for the same reason as the
+            // push-notification loop above.
         }
     }
 

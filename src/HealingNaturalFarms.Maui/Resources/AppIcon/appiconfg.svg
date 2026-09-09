@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!--
+    Placeholder foreground glyph (a simple leaf silhouette) so the app
+    icon isn't a blank tile. Swap this for real brand artwork before
+    shipping - see README.md's MAUI section.
+  -->
+  <path d="M64 24c22 0 36 16 36 36 0 22-16 40-36 44-20-4-36-22-36-44 0-20 14-36 36-36z" fill="#faf7f0"/>
+  <path d="M64 32v64" stroke="#1f3d2b" stroke-width="4" stroke-linecap="round"/>
+</svg>

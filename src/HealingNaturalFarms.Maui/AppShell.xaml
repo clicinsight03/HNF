@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:HealingNaturalFarms.Maui.Pages"
+       x:Class="HealingNaturalFarms.Maui.AppShell"
+       Shell.FlyoutBehavior="Disabled"
+       Title="Healing Natural Farms">
+
+    <!--
+      A simple bottom TabBar is the right navigation shape for a shop app
+      with 3 top-level destinations. Product detail, checkout, order
+      confirmation, login and register are pushed on top of these tabs
+      (registered as routes below) rather than being tabs themselves.
+    -->
+    <!--
+      No tab icons are set here (Icon="...") - this sandbox can't
+      fabricate real PNG/SVG art, and an Icon pointing at a file that
+      doesn't exist is a worse default than a clean text-only tab. Drop
+      icon files into Resources/Images and add e.g. Icon="tab_shop.png"
+      once you have real ones.
+    -->
+    <TabBar>
+        <ShellContent Title="Shop"
+                      ContentTemplate="{DataTemplate pages:ShopPage}"
+                      Route="shop" />
+
+        <ShellContent Title="Cart"
+                      ContentTemplate="{DataTemplate pages:CartPage}"
+                      Route="cart" />
+
+        <ShellContent Title="Account"
+                      ContentTemplate="{DataTemplate pages:LoginPage}"
+                      Route="account" />
+    </TabBar>
+
+</Shell>
